@@ -1,0 +1,4 @@
+[submodule "Falcor"]
+	path = Falcor
+	url = https://github.com/tfoleyNV/Falcor.git
+	branch = spire-redux
