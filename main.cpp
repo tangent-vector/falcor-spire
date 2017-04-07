@@ -252,7 +252,11 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 {
     ModelViewer modelViewer;
     SampleConfig config;
-    config.windowDesc.title = "Falcor Model Viewer";
+    config.windowDesc.title = "Falcor"
+#ifdef FALCOR_SPIRE_SUPPORTED
+    "+Spire"
+#endif
+    " Scene Viewer";
     config.windowDesc.resizableWindow = true;
     modelViewer.run(config);
 }

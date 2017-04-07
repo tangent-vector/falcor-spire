@@ -1,0 +1,12 @@
+# Visual Studio cruft
+
+*.VC.opendb
+*.VC.db
+*.vcxproj.user
+.vs
+
+# Output directories for builds
+
+test-original/Bin/
+test-spire/Bin/
+

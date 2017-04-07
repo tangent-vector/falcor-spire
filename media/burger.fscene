@@ -1,0 +1,87 @@
+{
+    "version": 0,
+    "camera_speed": 1.0,
+    "lighting_scale": 1.0,
+    "active_camera": "Default",
+    "ambient_intensity": [
+        0.01,
+        0.01,
+        0.01
+    ],
+    "models": [
+        {
+            "file": "Main\\Burger Restaurant\\Burger Restaurant.obj",
+            "name": "Burger Restaurant",
+            "instances": [
+                {
+                    "name": "Instance 0",
+                    "translation": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "scaling": [
+                        1.0,
+                        1.0,
+                        1.0
+                    ],
+                    "rotation": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ]
+                }
+            ]
+        }
+    ],
+    "lights": [
+        {"name": "p0", "type": "point_light","intensity": [100.0,100.0,100.0],"pos": [ 4.1, 3.6, 4.90],"direction": [0.0,-1.0,0.0],"opening_angle": 60.0,"penumbra_angle": 5.0 },
+        {"name": "p1", "type": "point_light","intensity": [100.0,100.0,100.0],"pos": [ 5.19, 3.6,25.45],"direction": [0.0,-1.0,0.0],"opening_angle": 60.0,"penumbra_angle": 5.0 },
+        {"name": "p2", "type": "point_light","intensity": [100.0,100.0,100.0],"pos":[21.963617, 5.00, 9.584897],"direction": [0.0,-1.0,0.0],"opening_angle": 60.0,"penumbra_angle": 5.0 },
+        {"name": "p3", "type": "point_light","intensity": [100.0,100.0,100.0],"pos":[21.936195, 5.00, 19.763884],"direction": [0.0,-1.0,0.0],"opening_angle": 60.0,"penumbra_angle": 5.0 },
+        {"name": "p4", "type": "point_light","intensity": [100.0,100.0,100.0],"pos":[10.690526, 3.6, 15.393965],"direction": [0.0,-1.0,0.0],"opening_angle": 60.0,"penumbra_angle": 5.0 },
+        {"name": "p5", "type": "point_light","intensity": [100.0,100.0,100.0],"pos":[8.226420, 3.6, 16.933798],"direction": [0.0,-1.0,0.0],"opening_angle": 60.0,"penumbra_angle": 5.0 },
+        {"name": "p6", "type": "point_light","intensity": [100.0,100.0,100.0],"pos":[13.014735, 3.6, 16.668591],"direction": [0.0,-1.0,0.0],"opening_angle": 60.0,"penumbra_angle": 5.0 },
+        {"name": "p7", "type": "point_light","intensity": [100.0,100.0,100.0],"pos":[6.195171, 3.6, 12.582413],"direction": [0.0,-1.0,0.0],"opening_angle": 60.0,"penumbra_angle": 5.0 },
+        {"name": "p8", "type": "point_light","intensity": [100.0,100.0,100.0],"pos":[-0.375806, 3.6, 17.787806],"direction": [0.0,-1.0,0.0],"opening_angle": 60.0,"penumbra_angle": 5.0 }
+
+
+
+
+        
+
+
+
+
+
+        
+        
+        
+    ],
+    "cameras": [
+        {
+            "name": "Default",
+            "pos": [
+                16.08844566345215,
+                3.456855297088623,
+                26.831037521362306
+            ],
+            "target": [
+                15.143205642700196,
+                3.407953977584839,
+                26.508344650268556
+            ],
+            "up": [
+                0.0,
+                1.0,
+                0.0
+            ],
+            "fovY": 57.295780181884769,
+            "depth_range": [
+                0.10000000149011612,
+                10000.0
+            ],
+            "aspect_ratio": 1.8195631504058838
+        }
+    ]
+}
