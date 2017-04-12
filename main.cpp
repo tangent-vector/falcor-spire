@@ -50,6 +50,13 @@ public:
     {
         mpScene = SceneImporter::loadScene(path, Model::GenerateTangentSpace, Scene::LoadMaterialHistory);
         resetCamera();
+
+        // TIM: try to enforce consistency of samplers!
+        uint32_t modelCount = mpScene->getModelCount();
+        for(uint32_t mm = 0; mm < modelCount; ++mm)
+        {
+            mpScene->getModel(mm)->bindSamplerToMaterials(mpLinearSampler);
+        }
     }
 
     void resetCamera();
