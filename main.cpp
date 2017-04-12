@@ -8,8 +8,16 @@
 #include "Falcor.h"
 #include "Graphics\Scene\SceneImporter.h"
 
+#include "Externals/dear_imgui/imgui.h"
 
 using namespace Falcor;
+
+namespace Falcor
+{
+    extern uint32_t gRootSignatureSets;
+    extern uint32_t gRootSignatureSwitches;
+    extern void* gLastRootSignature;
+}
 
 class ModelViewer : public Sample //, public SampleTest
 {
@@ -87,6 +95,10 @@ static Falcor::CpuTimer::TimePoint gProfileStopTime;
 
 void ModelViewer::onGuiRender()
 {
+    // Stats
+    ImGui::Text("Root Signature Sets: %d", gRootSignatureSets);
+    ImGui::Text("Root Signature Switches: %d", gRootSignatureSwitches);
+
     // Load a scene
     if( mpGui->addButton("Load Scene") )
     {
@@ -170,6 +182,10 @@ void ModelViewer::onLoad()
 
 void ModelViewer::onFrameRender()
 {
+    gRootSignatureSets = 0;
+    gRootSignatureSwitches = 0;
+    gLastRootSignature = 0;
+
     if(gIsProfiling && gProfileFrameCount == 0)
     {
         gProfileStartTime = Falcor::CpuTimer::getCurrentTimePoint();
