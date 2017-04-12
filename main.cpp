@@ -1,5 +1,10 @@
 // main.cpp
 
+#ifdef _MSC_VER
+#pragma warning(disable: 4996)
+#endif
+
+
 #include "Falcor.h"
 #include "Graphics\Scene\SceneImporter.h"
 
@@ -73,6 +78,13 @@ public:
     DepthStencilState::SharedPtr mpDepthTestDS = nullptr;
 };
 
+static bool gIsProfiling;
+static int32_t gProfileFrameCount;
+static int32_t gProfileStopFrameCount = 100;
+static Falcor::CpuTimer::TimePoint gProfileStartTime;
+static Falcor::CpuTimer::TimePoint gProfileStopTime;
+
+
 void ModelViewer::onGuiRender()
 {
     // Load a scene
@@ -81,6 +93,15 @@ void ModelViewer::onGuiRender()
         loadScene();
     }
 
+    if( mpGui->addButton("Generate Benchmark Data") )
+    {
+        gIsProfiling = true;
+        gProfileFrameCount = 0;
+    }
+    mpGui->addIntVar("Frames to Benchmark", gProfileStopFrameCount, 1, 100000);
+    mpGui->addSeparator();
+
+    mpGui->addCheckBox("Enable Falcor Profiler", gProfileEnabled);
     mpGui->addSeparator();
 
     mpGui->addCheckBox("Wireframe", mDrawWireframe);
@@ -149,6 +170,11 @@ void ModelViewer::onLoad()
 
 void ModelViewer::onFrameRender()
 {
+    if(gIsProfiling && gProfileFrameCount == 0)
+    {
+        gProfileStartTime = Falcor::CpuTimer::getCurrentTimePoint();
+    }
+
     const glm::vec4 clearColor(0.38f, 0.52f, 0.10f, 1);
     mpRenderContext->clearFbo(mpDefaultFBO.get(), clearColor, 1.0f, 0, FboAttachmentType::All);
     mpGraphicsState->setFbo(mpDefaultFBO);
@@ -171,6 +197,32 @@ void ModelViewer::onFrameRender()
     }
 
     renderText("HELLO WORLD", glm::vec2(10, 30));
+
+    if(gIsProfiling)
+    {
+        gProfileFrameCount++;
+
+        if( gProfileFrameCount == gProfileStopFrameCount)
+        {
+            gIsProfiling = false;
+            gProfileStopTime = Falcor::CpuTimer::getCurrentTimePoint();
+
+            float duration = Falcor::CpuTimer::calcDuration(gProfileStartTime, gProfileStopTime);
+
+            FILE* file = fopen(
+                "stats-"
+#ifdef FALCOR_SPIRE_SUPPORTED
+                "spire"
+#else
+                "original"
+#endif
+                ".txt", "w");
+            fprintf(file, "%d %f %f\n", gProfileFrameCount, duration, duration / gProfileFrameCount);
+            fclose(file);
+        }
+
+
+    }
 }
 
 void ModelViewer::onShutdown()
