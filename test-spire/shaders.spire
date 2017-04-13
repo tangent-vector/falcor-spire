@@ -1,52 +1,30 @@
-
-// HACK: putting this here instead of in `ModelViewer.spire`
-// so that we can actually look it up...
-module PerFrameCB_T
+module ModelViewerParams
 {
-    public param vec3 gAmbient;
-	public param int gLightCount;
-	public param LightData[16] gLights;
+	param int dummy;
 }
 
-
 template shader ModelViewerShader(
-	PerFrameCB : PerFrameCB_T,
+	params : ModelViewerParams,
+	L : ILighting,
 	InternalPerFrameCB : InternalPerFrameCB_T,
 	InternalPerMeshCB : InternalPerMeshCB_T,
 	M : Material,
 	VertexAttribs : IVertexAttribs,  // hack: put components that does not generate a uniform buffer last to avoid incomplete pso
 	) targets StandardPipeline
 {
-	using PerFrameCB;
-
+	using params;
 	using InternalPerFrameCB;
 	using InternalPerMeshCB;
 	using VertexAttribs;
 
-
 	using DefaultVertexShader;
-
 	using material = M();
-
+	using lighting = L(material.evalMaterial);
 
     public out @Fragment vec4 sv_target
 	{
 		ShadingAttribs shAttr;
 		material.prepareShadingAttribs(posW, /*gCam.*/position, normal, bitangent, vertUV, 0.0f, shAttr);
-		
-		ShadingOutput result;
-		InitializeShadingOutput(result);
-
-		for(int ii = 0; ii < gLightCount; ++ii)
-		{
-			material.evalMaterial(shAttr, gLights[ii], result);
-		}
-
-		float4 finalColor = float4(0.0f);
-		finalColor = vec4(result.finalValue, 1.f);
-
-		// add ambient
-//		finalColor.rgb += gAmbient * getDiffuseColor(shAttr).rgb;
-		return finalColor;
+		return lighting.lit(shAttr);
 	}
 }

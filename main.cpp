@@ -209,7 +209,7 @@ void ModelViewer::onFrameRender()
         mpGraphicsState->setRasterizerState(mpCullRastState[mCullMode]);
         mpGraphicsState->setDepthStencilState(mpDepthTestDS);
 
-        setSceneLightsIntoConstantBuffer(mpScene.get(), mpProgramVars["PerFrameCB"].get());
+        //setSceneLightsIntoConstantBuffer(mpScene.get(), mpProgramVars["PerFrameCB"].get());
 
         mpGraphicsState->setProgram(mpProgram);
         mpRenderContext->setGraphicsState(mpGraphicsState);
