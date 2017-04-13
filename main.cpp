@@ -209,7 +209,10 @@ void ModelViewer::onFrameRender()
         mpGraphicsState->setRasterizerState(mpCullRastState[mCullMode]);
         mpGraphicsState->setDepthStencilState(mpDepthTestDS);
 
-        //setSceneLightsIntoConstantBuffer(mpScene.get(), mpProgramVars["PerFrameCB"].get());
+#ifdef FALCOR_SPIRE_SUPPORTED
+#else
+        setSceneLightsIntoConstantBuffer(mpScene.get(), mpProgramVars["PerFrameCB"].get());
+#endif
 
         mpGraphicsState->setProgram(mpProgram);
         mpRenderContext->setGraphicsState(mpGraphicsState);
