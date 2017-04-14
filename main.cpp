@@ -36,6 +36,7 @@ public:
 
     // The currently loaded scene
     Scene::SharedPtr mpScene;
+    SceneRenderer::UniquePtr mpSceneRenderer;
 
     void loadScene()
     {
@@ -49,6 +50,10 @@ public:
     void loadSceneFromFile(std::string const& path)
     {
         mpScene = SceneImporter::loadScene(path, Model::GenerateTangentSpace, Scene::LoadMaterialHistory);
+
+        mpSceneRenderer = SceneRenderer::create(mpScene);
+//        mpSceneRenderer->setCameraControllerType(SceneRenderer::CameraControllerType::FirstPerson);
+
         resetCamera();
 
         // TIM: try to enforce consistency of samplers!
@@ -91,6 +96,16 @@ public:
 
     DepthStencilState::SharedPtr mpNoDepthDS = nullptr;
     DepthStencilState::SharedPtr mpDepthTestDS = nullptr;
+
+
+    // Note: stuff copied from Falcor "feature demo"
+    ToneMapping::UniquePtr mpToneMapper;
+
+    Fbo::SharedPtr mpMainFbo;
+    Fbo::SharedPtr mpResolveFbo;
+    Fbo::SharedPtr mpPostProcessFbo;
+
+    uint32_t mSampleCount = 4;
 };
 
 static bool gIsProfiling;
@@ -131,6 +146,23 @@ void ModelViewer::onGuiRender()
     cullList.push_back({ 1, "Backface Culling" });
     cullList.push_back({ 2, "Frontface Culling" });
     mpGui->addDropdown("Cull Mode", cullList, mCullMode);
+
+
+    Gui::DropdownList kSampleCountList = {
+        { 1, "1"},
+        { 2, "2" },
+        { 4, "4" },
+        { 8, "8" },
+    };
+
+    // Stuff from Falcor "feature demo"
+    if (mpGui->addDropdown("Sample Count", kSampleCountList, mSampleCount))
+    {
+        onResizeSwapChain();
+    }
+
+
+    mpToneMapper->renderUI(mpGui.get(), "Tone Mapping");
 }
 
 void ModelViewer::onLoad()
@@ -185,6 +217,10 @@ void ModelViewer::onLoad()
     {
         loadSceneFromFile(scenePaths[0].asString());
     }
+
+
+    // Stuff from Falcor "feature demo"
+    mpToneMapper = ToneMapping::create(ToneMapping::Operator::HableUc2);
 }
 
 void ModelViewer::onFrameRender()
@@ -198,16 +234,33 @@ void ModelViewer::onFrameRender()
         gProfileStartTime = Falcor::CpuTimer::getCurrentTimePoint();
     }
 
+#if 0
     const glm::vec4 clearColor(0.38f, 0.52f, 0.10f, 1);
     mpRenderContext->clearFbo(mpDefaultFBO.get(), clearColor, 1.0f, 0, FboAttachmentType::All);
     mpGraphicsState->setFbo(mpDefaultFBO);
+#else
+    mpRenderContext->pushGraphicsState(mpGraphicsState);
+    mpGraphicsState->setFbo(mpMainFbo);
+    mpRenderContext->clearFbo(mpMainFbo.get(), glm::vec4(), 1, 0, FboAttachmentType::All);
+    mpRenderContext->clearFbo(mpPostProcessFbo.get(), glm::vec4(), 1, 0, FboAttachmentType::Color);
+#endif
 
     if( mpScene )
     {
         getActiveCameraController().update();
 
-        mpGraphicsState->setRasterizerState(mpCullRastState[mCullMode]);
-        mpGraphicsState->setDepthStencilState(mpDepthTestDS);
+
+        //
+
+
+
+
+        //
+
+
+
+//        mpGraphicsState->setRasterizerState(mpCullRastState[mCullMode]);
+//        mpGraphicsState->setDepthStencilState(mpDepthTestDS);
 
 #ifdef FALCOR_SPIRE_SUPPORTED
 #else
@@ -215,12 +268,24 @@ void ModelViewer::onFrameRender()
 #endif
 
         mpGraphicsState->setProgram(mpProgram);
-        mpRenderContext->setGraphicsState(mpGraphicsState);
+//        mpRenderContext->setGraphicsState(mpGraphicsState);
         mpRenderContext->setGraphicsVars(mpProgramVars);
 
-        auto sceneRenderer = SceneRenderer::create(mpScene);
-        sceneRenderer->renderScene(mpRenderContext.get(), mpCamera.get());
+        mpSceneRenderer->renderScene(mpRenderContext.get(), mpCamera.get());
+
+
+        // Resolve MSAA surface
+        mpRenderContext->blit(mpMainFbo->getColorTexture(0)->getSRV(), mpResolveFbo->getRenderTargetView(0));
+        mpRenderContext->blit(mpMainFbo->getColorTexture(1)->getSRV(), mpResolveFbo->getRenderTargetView(1));
+        mpRenderContext->blit(mpMainFbo->getDepthStencilTexture()->getSRV(), mpResolveFbo->getRenderTargetView(2));
+
+        // Apply tone mapping
+        mpToneMapper->execute(mpRenderContext.get(), mpResolveFbo, mpDefaultFBO);
+
     }
+
+    mpRenderContext->popGraphicsState();
+
 
     renderText("HELLO WORLD", glm::vec2(10, 30));
 
@@ -282,12 +347,37 @@ bool ModelViewer::onMouseEvent(const MouseEvent& mouseEvent)
 
 void ModelViewer::onResizeSwapChain()
 {
+
+#if 0
+
     float height = (float)mpDefaultFBO->getHeight();
     float width = (float)mpDefaultFBO->getWidth();
 
     mpCamera->setFovY(float(M_PI / 3));
     float aspectRatio = (width / height);
     mpCamera->setAspectRatio(aspectRatio);
+#endif
+
+
+    // Create the main FBO
+    uint32_t w = mpDefaultFBO->getWidth();
+    uint32_t h = mpDefaultFBO->getHeight();
+
+    Fbo::Desc fboDesc;
+    fboDesc.setColorTarget(0, ResourceFormat::RGBA8UnormSrgb);
+    mpPostProcessFbo = FboHelper::create2D(w, h, fboDesc);
+
+    fboDesc.setColorTarget(0, ResourceFormat::RGBA32Float).setColorTarget(1, ResourceFormat::RGBA8Unorm).setColorTarget(2, ResourceFormat::R32Float);
+    mpResolveFbo = FboHelper::create2D(w, h, fboDesc);
+
+    fboDesc.setSampleCount(mSampleCount).setColorTarget(2, ResourceFormat::Unknown).setDepthStencilTarget(ResourceFormat::D32Float);
+    mpMainFbo = FboHelper::create2D(w, h, fboDesc);
+
+    if( mpSceneRenderer )
+    {
+        mpSceneRenderer->getScene()->getActiveCamera()->setAspectRatio((float)w / (float)h);
+        mpCamera->setAspectRatio((float)w / (float)h);
+    }
 }
 
 void ModelViewer::resetCamera()
