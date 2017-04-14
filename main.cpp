@@ -206,8 +206,16 @@ void ModelViewer::onFrameRender()
     {
         getActiveCameraController().update();
 
-        mpGraphicsState->setRasterizerState(mpCullRastState[mCullMode]);
-        mpGraphicsState->setDepthStencilState(mpDepthTestDS);
+        if( mDrawWireframe )
+        {
+            mpGraphicsState->setRasterizerState(mpWireframeRS);
+            mpGraphicsState->setDepthStencilState(mpNoDepthDS);
+        }
+        else
+        {
+            mpGraphicsState->setRasterizerState(mpCullRastState[mCullMode]);
+            mpGraphicsState->setDepthStencilState(mpDepthTestDS);
+        }
 
 #ifdef FALCOR_SPIRE_SUPPORTED
 #else

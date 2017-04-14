@@ -14,8 +14,10 @@ template shader ModelViewerShader(
 {
 	using params;
 	using InternalPerFrameCB;
-	using InternalPerMeshCB;
+
 	using VertexAttribs;
+
+	using InternalPerMeshCB;
 
 	using DefaultVertexShader;
 	using material = M();
@@ -24,7 +26,7 @@ template shader ModelViewerShader(
     public out @Fragment vec4 sv_target
 	{
 		ShadingAttribs shAttr;
-		material.prepareShadingAttribs(posW, /*gCam.*/position, normal, bitangent, vertUV, 0.0f, shAttr);
+		material.prepareShadingAttribs(posW, /*gCam.*/position, normalW, bitangent, vertUV, 0.0f, shAttr);
 		return lighting.lit(shAttr);
 	}
 }
