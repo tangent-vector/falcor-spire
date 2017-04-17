@@ -7,7 +7,7 @@
 
 #include "Falcor.h"
 #include "Graphics\Scene\SceneImporter.h"
-
+#include "Utils/Profiler.h"
 #include "Externals/dear_imgui/imgui.h"
 
 using namespace Falcor;
@@ -30,12 +30,20 @@ public:
     bool onMouseEvent(const MouseEvent& mouseEvent) override;
     void onGuiRender() override;
 
+	bool benchmarkMode = false;
 
-
+	LARGE_INTEGER frequency;
+	HashedString frameRenderEventName = "onFrameRender";
+	std::string sceneName;
 //
 
     // The currently loaded scene
     Scene::SharedPtr mpScene;
+
+	ModelViewer()
+	{
+		QueryPerformanceFrequency(&frequency);
+	}
 
     void loadScene()
     {
@@ -50,7 +58,7 @@ public:
     {
         mpScene = SceneImporter::loadScene(path, Model::GenerateTangentSpace, Scene::LoadMaterialHistory);
         resetCamera();
-
+		sceneName = path;
         // TIM: try to enforce consistency of samplers!
         uint32_t modelCount = mpScene->getModelCount();
         for(uint32_t mm = 0; mm < modelCount; ++mm)
@@ -135,13 +143,17 @@ void ModelViewer::onGuiRender()
 
 void ModelViewer::onLoad()
 {
+	benchmarkMode = mArgList.argExists("benchmark");
+#ifdef FALCOR_SPIRE_SUPPORTED
+	Material::UseGeneralShader = !mArgList.argExists("specialize");
+#endif
     mpCamera = Camera::create();
 #ifdef FALCOR_SPIRE_SUPPORTED
     mpProgram = GraphicsProgram::createFromSpireFile("shaders.spire");
 #else
     mpProgram = GraphicsProgram::createFromFile("", "shaders.hlsl");
 #endif
-
+	
     // create rasterizer state
     RasterizerState::Desc wireframeDesc;
     wireframeDesc.setFillMode(RasterizerState::FillMode::Wireframe);
@@ -183,8 +195,12 @@ void ModelViewer::onLoad()
     std::vector<ArgList::Arg> scenePaths = mArgList.getValues("scene");
     if (!scenePaths.empty())
     {
-        loadSceneFromFile(scenePaths[0].asString());
+		auto fileName = scenePaths[0].asString();
+		if (fileName.length() > 0 && fileName[0] == '\"')
+			fileName = fileName.substr(1, fileName.length() - 2);
+        loadSceneFromFile(fileName);
     }
+
 }
 
 void ModelViewer::onFrameRender()
@@ -192,6 +208,7 @@ void ModelViewer::onFrameRender()
     gRootSignatureSets = 0;
     gRootSignatureSwitches = 0;
     gLastRootSignature = 0;
+
 
     if(gIsProfiling && gProfileFrameCount == 0)
     {
@@ -201,6 +218,9 @@ void ModelViewer::onFrameRender()
     const glm::vec4 clearColor(0.38f, 0.52f, 0.10f, 1);
     mpRenderContext->clearFbo(mpDefaultFBO.get(), clearColor, 1.0f, 0, FboAttachmentType::All);
     mpGraphicsState->setFbo(mpDefaultFBO);
+
+	LARGE_INTEGER startTime, endTime;
+	QueryPerformanceCounter(&startTime);
 
     if( mpScene )
     {
@@ -229,8 +249,34 @@ void ModelViewer::onFrameRender()
         auto sceneRenderer = SceneRenderer::create(mpScene);
         sceneRenderer->renderScene(mpRenderContext.get(), mpCamera.get());
     }
-
+	QueryPerformanceCounter(&endTime);
     renderText("HELLO WORLD", glm::vec2(10, 30));
+
+	if (benchmarkMode)
+	{
+		static int frameCount = 0;
+		static double totalGpu = 0.0, totalCpu = 0.0;
+		static int statFrameCount = 0;
+		frameCount++;
+		if (frameCount > 300 && frameCount < 1000)
+		{
+			auto evt = Profiler::getEvent(frameRenderEventName);
+			totalGpu += evt->lastGpuTime;
+			totalCpu += (endTime.QuadPart-startTime.QuadPart)/(double)frequency.QuadPart * 1000.0;
+			statFrameCount++;
+		}
+		if (frameCount == 1000)
+		{
+			printf("%s, %s, %f, %f\n", sceneName.c_str(), 
+#ifdef FALCOR_SPIRE_SUPPORTED
+				Material::UseGeneralShader?"spire_gen":"spire_spec",
+#else
+				"original",
+#endif
+				totalCpu / statFrameCount, totalGpu / statFrameCount);
+			mpWindow->shutdown();
+		}
+	}
 
     if(gIsProfiling)
     {
@@ -338,6 +384,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 {
     ModelViewer modelViewer;
     SampleConfig config;
+	
     config.windowDesc.title = "Falcor"
 #ifdef FALCOR_SPIRE_SUPPORTED
     "+Spire"
