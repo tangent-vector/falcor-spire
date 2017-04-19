@@ -4,6 +4,8 @@
 *.VC.db
 *.vcxproj.user
 .vs
+*.diagsession
+*.vspx
 
 # Output directories for builds
 
